@@ -1,0 +1,71 @@
+# Al-Mustafa Motors — full stack with Docker
+#
+#   docker compose up --build -d
+#   docker compose exec -e SEED_DEMO=true backend npx prisma db seed   # optional demo data + dev admin
+#
+# Website: http://localhost:4000    API: http://localhost:3000/api
+# Values below can be overridden from a root .env file (docker compose reads it automatically).
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-almustafa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-almustafa}
+      POSTGRES_DB: ${POSTGRES_DB:-almustafa}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-almustafa} -d ${POSTGRES_DB:-almustafa}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-almustafa}:${POSTGRES_PASSWORD:-almustafa}@postgres:5432/${POSTGRES_DB:-almustafa}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (a long random string)}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      # The website and API share the origin http://localhost:4000 through the web container's proxy.
+      FRONTEND_URL: ${PUBLIC_SITE_URL:-http://localhost:4000}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUST_PROXY: 'true'
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@almustafamotors.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe123!}
+      BUSINESS_NAME: ${BUSINESS_NAME:-Al-Mustafa Motors}
+      WHATSAPP_NUMBER: ${WHATSAPP_NUMBER:-+923368440890}
+      BUSINESS_PHONE: ${BUSINESS_PHONE:-+923118382992}
+      GOOGLE_MAPS_URL: ${GOOGLE_MAPS_URL:-}
+      STORAGE_DRIVER: local
+      UPLOAD_DIR: uploads
+      PUBLIC_UPLOAD_BASE_URL: /uploads
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - '3000:3000'
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      SSR_PORT: 4000
+      API_INTERNAL_URL: http://backend:3000
+      # Hostnames the site may be served under (comma-separated). Add your domain in production.
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-localhost,127.0.0.1}
+    ports:
+      - '4000:4000'
+
+volumes:
+  pgdata:
+  uploads:

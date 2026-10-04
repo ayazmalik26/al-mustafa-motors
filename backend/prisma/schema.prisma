@@ -1,0 +1,262 @@
+// Al-Mustafa Motors — database schema (PostgreSQL)
+// Run `npm run prisma:migrate` after changing this file.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum VehicleCondition {
+  USED
+  BRAND_NEW
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+}
+
+enum BodyType {
+  SEDAN
+  HATCHBACK
+  SUV
+  CROSSOVER
+  PICKUP
+  VAN
+  MPV
+  COUPE
+  WAGON
+  OTHER
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  PLUG_IN_HYBRID
+  ELECTRIC
+  CNG
+}
+
+enum Transmission {
+  AUTOMATIC
+  MANUAL
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+enum EnquirySource {
+  VEHICLE_PAGE
+  CONTACT_PAGE
+  GENERAL
+}
+
+enum SellRequestStatus {
+  NEW
+  CONTACTED
+  EVALUATING
+  CLOSED
+}
+
+enum SellIntent {
+  SELL
+  EXCHANGE
+}
+
+enum SellVehicleCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  NEEDS_WORK
+}
+
+// ─── Models ─────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(STAFF)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Vehicle {
+  id           String           @id @default(uuid())
+  slug         String           @unique
+  make         String
+  model        String
+  variant      String?
+  year         Int
+  condition    VehicleCondition
+  bodyType     BodyType
+  fuelType     FuelType
+  transmission Transmission
+  /// Kilometres. Null when unknown.
+  mileage      Int?
+  engine       String?
+  color        String?
+  /// Price in PKR. Null means "Price on request".
+  price        Int?
+  /// Optional free-text price label shown instead of the formatted price.
+  priceDisplay String?
+  status       VehicleStatus    @default(AVAILABLE)
+  description  String?          @db.Text
+  featured     Boolean          @default(false)
+  /// Demo/seed record — shown with a "Demo listing" label on the website.
+  isDemo       Boolean          @default(false)
+  soldAt       DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  images    VehicleImage[]
+  enquiries Enquiry[]
+
+  @@index([status])
+  @@index([make, model])
+  @@index([featured])
+  @@index([price])
+  @@index([year])
+  @@index([createdAt])
+  @@map("vehicles")
+}
+
+model VehicleImage {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  /// Large image URL (absolute, or a path served by the API such as /uploads/...).
+  url         String
+  /// Smaller variant for cards and thumbnails.
+  thumbUrl    String?
+  /// Keys in the storage provider; empty for externally hosted images.
+  storageKeys String[] @default([])
+  width       Int?
+  height      Int?
+  alt         String?
+  sortOrder   Int      @default(0)
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, sortOrder])
+  @@map("vehicle_images")
+}
+
+model Enquiry {
+  id           String        @id @default(uuid())
+  vehicleId    String?
+  /// Snapshot of the vehicle name/slug at the time of the enquiry (survives vehicle deletion).
+  vehicleTitle String?
+  vehicleSlug  String?
+  name         String
+  phone        String
+  email        String?
+  message      String        @db.Text
+  source       EnquirySource @default(GENERAL)
+  status       EnquiryStatus @default(NEW)
+  /// Internal notes for staff.
+  notes        String?       @db.Text
+  locale       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("enquiries")
+}
+
+model SellRequest {
+  id            String                @id @default(uuid())
+  name          String
+  phone         String
+  email         String?
+  vehicleMake   String
+  vehicleModel  String
+  vehicleYear   Int
+  mileage       Int?
+  condition     SellVehicleCondition?
+  expectedPrice Int?
+  intent        SellIntent
+  message       String?               @db.Text
+  status        SellRequestStatus     @default(NEW)
+  notes         String?               @db.Text
+  locale        String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  images SellRequestImage[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("sell_requests")
+}
+
+model SellRequestImage {
+  id            String   @id @default(uuid())
+  sellRequestId String
+  url           String
+  thumbUrl      String?
+  storageKeys   String[] @default([])
+  createdAt     DateTime @default(now())
+
+  sellRequest SellRequest @relation(fields: [sellRequestId], references: [id], onDelete: Cascade)
+
+  @@index([sellRequestId])
+  @@map("sell_request_images")
+}
+
+/// Single-row table (id = 1) holding business details and homepage content.
+model Setting {
+  id             Int      @id @default(1)
+  businessName   String
+  phone          String
+  whatsapp       String
+  email          String?
+  address        String
+  addressUr      String?
+  googleMapsUrl  String?
+  latitude       Float?
+  longitude      Float?
+  facebookUrl    String?
+  instagramUrl   String?
+  openingHours   String?
+  openingHoursUr String?
+  description    String?  @db.Text
+  descriptionUr  String?  @db.Text
+  heroTitle      String?
+  heroTitleUr    String?
+  heroSubtitle   String?  @db.Text
+  heroSubtitleUr String?  @db.Text
+  heroImageUrl   String?
+  /// Shows the "demo inventory" notice across the public site.
+  showDemoNotice Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  @@map("settings")
+}

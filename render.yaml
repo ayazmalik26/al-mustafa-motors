@@ -1,0 +1,51 @@
+# Render Blueprint for the Al-Mustafa Motors API (NestJS, Docker).
+# Render → New → Blueprint → select this repository. Values marked `sync: false`
+# are asked for during setup. The website itself is deployed on Netlify (netlify.toml).
+services:
+  - type: web
+    name: al-mustafa-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    # Free instances sleep when idle and take ~1 minute to wake, which can exceed Netlify's
+    # 40-second edge timeout on the first request. Use "starter" or higher for a live site.
+    plan: starter
+    region: singapore
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Neon: the pooled connection string (host contains "-pooler") for the app…
+      - key: DATABASE_URL
+        sync: false
+      # …and the direct one for migrations (run automatically on every deploy).
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      # Your Netlify URL or custom domain, e.g. https://almustafamotors.netlify.app
+      - key: FRONTEND_URL
+        sync: false
+      - key: COOKIE_SECURE
+        value: 'true'
+      # Visitor → Netlify edge → Render proxy → API
+      - key: TRUST_PROXY
+        value: '2'
+      - key: STORAGE_DRIVER
+        value: cloudinary
+      # Cloudinary dashboard → API Keys → "API environment variable": cloudinary://<key>:<secret>@<cloud_name>
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: al-mustafa-motors
+      - key: MAX_UPLOAD_MB
+        value: '8'
+      # Defaults written into the settings table on first seed (then edited in Admin → Settings).
+      - key: BUSINESS_NAME
+        value: Al-Mustafa Motors
+      - key: WHATSAPP_NUMBER
+        value: '+923368440890'
+      - key: BUSINESS_PHONE
+        value: '+923118382992'

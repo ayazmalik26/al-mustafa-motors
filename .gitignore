@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# local database (embedded PostgreSQL)
+.data/
+
+# build output
+dist/
+backend/dist/
+frontend/dist/
+frontend/.angular/
+
+# uploads (keep folder structure only)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/vehicles/
+backend/uploads/vehicles/*
+!backend/uploads/vehicles/.gitkeep
+backend/uploads-test/
+
+# generated prisma client
+backend/src/generated/
+
+# test output
+coverage/
+e2e/test-results/
+e2e/playwright-report/
+e2e/screenshots/
+e2e/.auth/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
+*.tsbuildinfo
+
+# local tool output / config
+.netlify/
+.claude/

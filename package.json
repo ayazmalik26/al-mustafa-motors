@@ -1,0 +1,44 @@
+{
+  "name": "al-mustafa-motors",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Al-Mustafa Motors digital showroom: Angular + NestJS + PostgreSQL (Prisma)",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install-all.mjs",
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -n db,api,web -c gray,blue,magenta \"npm:db:start\" \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend start",
+    "db:start": "node scripts/dev-db.mjs",
+    "db:migrate": "npm --prefix backend run prisma:migrate",
+    "db:deploy": "npm --prefix backend run prisma:deploy",
+    "db:seed": "npm --prefix backend run prisma:seed",
+    "db:reset": "npm --prefix backend run prisma:reset",
+    "db:studio": "npm --prefix backend run prisma:studio",
+    "admin:create": "npm --prefix backend run admin:create --",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build:node",
+    "start:prod": "concurrently -n api,web -c blue,magenta \"npm --prefix backend run start:prod\" \"npm --prefix frontend run serve:ssr\"",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "test": "npm run test:backend && npm run test:api && npm run test:frontend",
+    "test:backend": "npm --prefix backend test",
+    "test:api": "npm --prefix backend run test:api",
+    "test:frontend": "npm --prefix frontend test",
+    "test:e2e": "npm --prefix e2e test",
+    "test:all": "npm test && npm run test:e2e",
+    "build:netlify": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "embedded-postgres": "18.4.0-beta.17"
+  },
+  "allowScripts": {
+    "@embedded-postgres/windows-x64": true,
+    "@embedded-postgres/linux-x64": true,
+    "@embedded-postgres/linux-arm64": true,
+    "@embedded-postgres/darwin-x64": true,
+    "@embedded-postgres/darwin-arm64": true
+  }
+}

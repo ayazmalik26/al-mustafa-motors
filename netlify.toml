@@ -1,0 +1,38 @@
+# Netlify: the Angular website (server-side rendered as an Edge Function).
+# The API runs elsewhere (see render.yaml); the edge function forwards /api, /uploads,
+# /sitemap.xml and /robots.txt to it, so the site and API share one domain.
+#
+# Required Netlify environment variable (Site configuration → Environment variables,
+# scope must include "Functions"):
+#   API_INTERNAL_URL = https://<your-api>.onrender.com
+# Optional: NG_ALLOWED_HOSTS = extra hostnames (custom domains are allowed automatically).
+
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist/frontend/browser"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+[[plugins]]
+  package = "@netlify/angular-runtime"
+
+# Long-lived caching for fingerprinted build assets.
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
